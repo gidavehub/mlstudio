@@ -307,4 +307,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for the AI community**
 
-*MLStudio - Where AI meets Data, Rewards, and Innovation*
+*MLStudio - Where AI meets Data, Rewards, and Innovation*"# mlstudio" 
