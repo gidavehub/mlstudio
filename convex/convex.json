@@ -1,0 +1,7 @@
+{
+  "providers": {
+    "convex": {
+      "region": "us-east-1"
+    }
+  }
+}
