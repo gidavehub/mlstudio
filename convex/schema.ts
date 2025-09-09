@@ -336,7 +336,7 @@ export default defineSchema({
   // Reward transactions and KALE token operations
   rewardTransactions: defineTable({
     userId: v.id("users"),
-    transactionType: v.union(v.literal("contribution_reward"), v.literal("api_usage"), v.literal("subscription_payment"), v.literal("withdrawal"), v.literal("bonus")),
+    transactionType: v.union(v.literal("contribution_reward"), v.literal("api_usage"), v.literal("subscription_payment"), v.literal("withdrawal"), v.literal("bonus"), v.literal("refund")),
     amount: v.number(), // KALE tokens
     description: v.string(),
     relatedId: v.optional(v.string()), // ID of related contribution, API call, etc.
