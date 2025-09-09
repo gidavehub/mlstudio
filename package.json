@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build --force",
+    "build": "next build --legacy-peer-deps --force",
     "start": "next start",
     "lint": "next lint"
   },
