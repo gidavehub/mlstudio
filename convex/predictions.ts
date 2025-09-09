@@ -131,8 +131,33 @@ export const deleteDeployedAPI = mutation({
   },
 });
 
+// Get API usage statistics
+export const getAPIUsageStats = query({
+  args: {
+    apiId: v.id("deployedAPIs"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const api = await ctx.db.get(args.apiId);
+    if (!api || api.ownerId !== identity.subject) {
+      throw new Error("API not found or not authorized");
+    }
+
+    return {
+      requestCount: api.requestCount,
+      lastUsedAt: api.lastUsedAt,
+      createdAt: api.createdAt,
+      isActive: api.isActive,
+    };
+  },
+});
+
 // Make a prediction using deployed API
-export const makePrediction = action({
+export const makePrediction: any = action({
   args: {
     apiKey: v.string(),
     inputs: v.array(v.number()),
@@ -180,6 +205,11 @@ export const makePrediction = action({
 
     // Get file URL for CSV data
     console.log('🔍 Getting file URL for storageId:', dataset.fileStorageId);
+    if (!dataset.fileStorageId) {
+      console.log('❌ Dataset has no file storage ID');
+      throw new Error("Dataset has no file storage ID");
+    }
+    
     const fileUrl = await ctx.storage.getUrl(dataset.fileStorageId);
     console.log('🔍 File URL:', fileUrl ? 'Found' : 'Not found');
     
@@ -251,30 +281,5 @@ export const makePrediction = action({
     
     console.log('✅ Prediction result:', result);
     return result;
-  },
-});
-
-// Get API usage statistics
-export const getAPIUsageStats = query({
-  args: {
-    apiId: v.id("deployedAPIs"),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const api = await ctx.db.get(args.apiId);
-    if (!api || api.ownerId !== identity.subject) {
-      throw new Error("API not found or not authorized");
-    }
-
-    return {
-      requestCount: api.requestCount,
-      lastUsedAt: api.lastUsedAt,
-      createdAt: api.createdAt,
-      isActive: api.isActive,
-    };
   },
 });

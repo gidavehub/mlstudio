@@ -121,7 +121,7 @@ export default function DataManagement() {
       if (fileType === 'csv') {
         console.log("Applying CSV preprocessing...");
         markStep("missing", "in_progress");
-        preprocessor.handleMissingValues('drop');
+        preprocessor.handleMissingValues('drop_rows');
         markStep("missing", "completed");
         markStep("normalize", "in_progress");
         preprocessor.normalizeData('minmax');

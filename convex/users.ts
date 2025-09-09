@@ -145,13 +145,14 @@ export const getUserTeams = query({
     const user = await getAuthUser(ctx);
     if (!user) return [];
 
-    const teams = await ctx.db
+    const allTeams = await ctx.db
       .query("teams")
-      .filter((q) => 
-        q.eq(q.field("ownerId"), user._id) ||
-        q.field("members").some((member: any) => member.userId === user._id)
-      )
       .collect();
+    
+    const teams = allTeams.filter(team => 
+      team.ownerId === user._id || 
+      team.members.some(member => member.userId === user._id)
+    );
 
     return teams;
   },

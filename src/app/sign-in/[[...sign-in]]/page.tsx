@@ -1,5 +1,5 @@
 "use client";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 
 export default function SignInPage() {
-  const { signIn, setActive, isLoaded, isSignedIn } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const { isSignedIn } = useUser();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

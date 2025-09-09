@@ -43,8 +43,8 @@ export const ApiBillingProvider: React.FC<ApiBillingProviderProps> = ({ children
 
   // Get user balance
   const balanceQuery = useQuery(api.apiBilling.getUserBalance);
-  const balanceData = balanceQuery?.data;
-  const balanceLoading = balanceQuery?.isLoading || false;
+  const balanceData = balanceQuery;
+  const balanceLoading = balanceQuery === undefined;
   const userBalance = balanceData?.kaleBalance || 0;
   const subscriptionPlan = balanceData?.subscriptionPlan || 'free';
 

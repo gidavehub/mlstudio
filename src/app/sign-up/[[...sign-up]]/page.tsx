@@ -1,5 +1,5 @@
 "use client";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -19,7 +19,8 @@ import PaymentWall from "@/components/PaymentWall";
 import { SubscriptionPlan } from "@/lib/subscriptionPlans";
 
 export default function SignUpPage() {
-  const { signUp, setActive, isLoaded, isSignedIn } = useSignUp();
+  const { signUp, setActive, isLoaded } = useSignUp();
+  const { isSignedIn } = useUser();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

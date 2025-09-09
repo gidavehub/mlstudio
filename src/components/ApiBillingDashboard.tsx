@@ -47,16 +47,16 @@ const ApiBillingDashboard: React.FC = () => {
   const usageQuery = useQuery(api.apiBilling.getUsageHistory, {
     limit: 100
   });
-  const usageData = usageQuery?.data;
-  const usageLoading = usageQuery?.isLoading || false;
+  const usageData = usageQuery;
+  const usageLoading = usageQuery === undefined;
 
   // Get API pricing
   const pricingQuery = useQuery(api.apiBilling.getApiPricing);
-  const pricingData = pricingQuery?.data;
+  const pricingData = pricingQuery;
 
   // Get subscription benefits
   const benefitsQuery = useQuery(api.apiBilling.getSubscriptionBenefits);
-  const benefitsData = benefitsQuery?.data;
+  const benefitsData = benefitsQuery;
 
   const formatCurrency = (amount: number) => {
     return `${amount.toFixed(2)} KALE`;
