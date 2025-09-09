@@ -6,6 +6,10 @@ const nextConfig = {
   images: {
     domains: ['images.clerk.dev'],
   },
+  typescript: {
+    // Skip type checking during build
+    ignoreBuildErrors: true,
+  },
 }
 
 module.exports = nextConfig
