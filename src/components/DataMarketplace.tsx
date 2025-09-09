@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 interface MarketplaceDataset {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   category: string;
@@ -359,7 +359,7 @@ export default function DataMarketplace() {
               const CategoryIcon = getCategoryIcon(dataset.category);
               return (
                 <motion.div
-                  key={dataset.id}
+                  key={dataset._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -5 }}
@@ -435,7 +435,7 @@ export default function DataMarketplace() {
               const CategoryIcon = getCategoryIcon(dataset.category);
               return (
                 <motion.div
-                  key={dataset.id}
+                  key={dataset._id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="bg-ml-dark-100 rounded-xl p-6 cursor-pointer hover:bg-ml-dark-200 transition-all duration-200"

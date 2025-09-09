@@ -245,8 +245,8 @@ export default function DataBrowser() {
 
               {/* Owner */}
               <div className="mt-4 pt-4 border-t border-slate-700">
-                <p className="text-slate-400 text-xs">Owner: <span className="text-slate-300">{dataset.owner}</span></p>
-                <p className="text-slate-400 text-xs">Updated: {dataset.lastUpdated}</p>
+                <p className="text-slate-400 text-xs">Owner: <span className="text-slate-300">{dataset.ownerId}</span></p>
+                <p className="text-slate-400 text-xs">Updated: {new Date(dataset.updatedAt).toLocaleDateString()}</p>
               </div>
             </motion.div>
           ))}

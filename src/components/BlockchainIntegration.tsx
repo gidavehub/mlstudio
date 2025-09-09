@@ -30,7 +30,7 @@ export default function BlockchainIntegration() {
   const dataContributions = useQuery(api.dataContributions.list);
 
   // Mock price feeds (these would come from external API in real implementation)
-  const priceFeeds: PriceFeed[] = [
+  const [priceFeeds, setPriceFeeds] = useState<PriceFeed[]>([
     {
       asset: 'XLM/USD',
       price: 0.125,
@@ -55,7 +55,7 @@ export default function BlockchainIntegration() {
       change24h: 3.2,
       lastUpdated: new Date().toISOString()
     }
-  ];
+  ]);
 
   // Transform Convex data to KALE rewards format
   const kaleRewards: KALEReward[] = rewardTransactions?.map(tx => ({

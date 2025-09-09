@@ -33,7 +33,7 @@ export default function AppOverview() {
 
   // Calculate successful models
   const successfulModels = models?.filter(model => 
-    model.status === 'trained' || model.status === 'deployed'
+    model.status === 'completed'
   ).length || 0;
 
   // Calculate marketplace revenue (simplified)

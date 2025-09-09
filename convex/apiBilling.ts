@@ -298,11 +298,14 @@ export const getSubscriptionBenefits = query({
         discountMultiplier: 0.5, // 50% discount
         features: ["Unlimited API access", "Dedicated support", "Custom integrations"],
       },
-    };
+    } as const;
+
+    // Ensure plan is a valid key
+    const validPlan = (plan === "free" || plan === "pro" || plan === "enterprise") ? plan : "free";
 
     return {
-      currentPlan: plan,
-      benefits: benefits[plan],
+      currentPlan: validPlan,
+      benefits: benefits[validPlan as keyof typeof benefits],
       allPlans: benefits,
     };
   },

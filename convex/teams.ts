@@ -28,23 +28,29 @@ export const getMyTeams = query({
 
     if (!currentUser) return [];
 
-    // Get teams where user is a member
-    const memberships = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
+    // Get all teams and filter in memory (since we can't easily query array fields)
+    const allTeams = await ctx.db
+      .query("teams")
       .collect();
-
-    const teams = await Promise.all(
-      memberships.map(async (membership) => {
-        const team = await ctx.db.get(membership.teamId);
-        return {
-          ...team,
-          role: membership.role,
-        };
-      })
+    
+    // Filter teams where user is owner or member
+    const teams = allTeams.filter(team => 
+      team.ownerId === currentUser._id || 
+      team.members.some(member => member.userId === currentUser._id)
     );
 
-    return teams.filter(Boolean);
+    // Add role information for each team
+    const teamsWithRoles = teams.map(team => {
+      const userMembership = team.members.find(member => member.userId === currentUser._id);
+      const role = team.ownerId === currentUser._id ? "owner" : (userMembership?.role || "member");
+      
+      return {
+        ...team,
+        userRole: role,
+      };
+    });
+
+    return teamsWithRoles.filter(Boolean);
   },
 });
 
@@ -69,17 +75,13 @@ export const createTeam = mutation({
       name: args.name,
       description: args.description,
       ownerId: currentUser._id,
-      members: [currentUser._id],
+      members: [{
+        userId: currentUser._id,
+        role: "admin" as const,
+        joinedAt: Date.now(),
+      }],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    });
-
-    // Add owner as admin member
-    await ctx.db.insert("teamMemberships", {
-      teamId,
-      userId: currentUser._id,
-      role: "owner",
-      joinedAt: Date.now(),
     });
 
     return teamId;
@@ -104,15 +106,15 @@ export const addTeamMember = mutation({
 
     if (!currentUser) throw new Error("User not found");
 
-    // Check if user is team admin or owner
-    const membership = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_team_and_user", (q) => 
-        q.eq("teamId", args.teamId).eq("userId", currentUser._id)
-      )
-      .first();
+    // Get team and check permissions
+    const team = await ctx.db.get(args.teamId);
+    if (!team) throw new Error("Team not found");
 
-    if (!membership || (membership.role !== "admin" && membership.role !== "owner")) {
+    const userMembership = team.members.find(member => member.userId === currentUser._id);
+    const isOwner = team.ownerId === currentUser._id;
+    const isAdmin = userMembership?.role === "admin";
+
+    if (!isOwner && !isAdmin) {
       throw new Error("Insufficient permissions");
     }
 
@@ -125,31 +127,18 @@ export const addTeamMember = mutation({
     if (!targetUser) throw new Error("User not found");
 
     // Check if user is already a member
-    const existingMembership = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_team_and_user", (q) => 
-        q.eq("teamId", args.teamId).eq("userId", targetUser._id)
-      )
-      .first();
-
+    const existingMembership = team.members.find(member => member.userId === targetUser._id);
     if (existingMembership) throw new Error("User is already a member");
 
-    // Add membership
-    await ctx.db.insert("teamMemberships", {
-      teamId: args.teamId,
-      userId: targetUser._id,
-      role: args.role,
-      joinedAt: Date.now(),
+    // Add member to team
+    await ctx.db.patch(args.teamId, {
+      members: [...team.members, {
+        userId: targetUser._id,
+        role: args.role,
+        joinedAt: Date.now(),
+      }],
+      updatedAt: Date.now(),
     });
-
-    // Update team members array
-    const team = await ctx.db.get(args.teamId);
-    if (team) {
-      await ctx.db.patch(args.teamId, {
-        members: [...team.members, targetUser._id],
-        updatedAt: Date.now(),
-      });
-    }
 
     return targetUser._id;
   },
@@ -172,38 +161,23 @@ export const removeTeamMember = mutation({
 
     if (!currentUser) throw new Error("User not found");
 
-    // Check if user is team admin or owner
-    const membership = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_team_and_user", (q) => 
-        q.eq("teamId", args.teamId).eq("userId", currentUser._id)
-      )
-      .first();
+    // Get team and check permissions
+    const team = await ctx.db.get(args.teamId);
+    if (!team) throw new Error("Team not found");
 
-    if (!membership || (membership.role !== "admin" && membership.role !== "owner")) {
+    const userMembership = team.members.find(member => member.userId === currentUser._id);
+    const isOwner = team.ownerId === currentUser._id;
+    const isAdmin = userMembership?.role === "admin";
+
+    if (!isOwner && !isAdmin) {
       throw new Error("Insufficient permissions");
     }
 
-    // Remove membership
-    const targetMembership = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_team_and_user", (q) => 
-        q.eq("teamId", args.teamId).eq("userId", args.userId)
-      )
-      .first();
-
-    if (targetMembership) {
-      await ctx.db.delete(targetMembership._id);
-    }
-
-    // Update team members array
-    const team = await ctx.db.get(args.teamId);
-    if (team) {
-      await ctx.db.patch(args.teamId, {
-        members: team.members.filter(id => id !== args.userId),
-        updatedAt: Date.now(),
-      });
-    }
+    // Remove member from team
+    await ctx.db.patch(args.teamId, {
+      members: team.members.filter(member => member.userId !== args.userId),
+      updatedAt: Date.now(),
+    });
 
     return true;
   },
@@ -217,18 +191,13 @@ export const getTeam = query({
     if (!team) return null;
 
     // Get team members with details
-    const memberships = await ctx.db
-      .query("teamMemberships")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
-      .collect();
-
     const members = await Promise.all(
-      memberships.map(async (membership) => {
-        const user = await ctx.db.get(membership.userId);
+      team.members.map(async (member) => {
+        const user = await ctx.db.get(member.userId);
         return {
           ...user,
-          role: membership.role,
-          joinedAt: membership.joinedAt,
+          role: member.role,
+          joinedAt: member.joinedAt,
         };
       })
     );

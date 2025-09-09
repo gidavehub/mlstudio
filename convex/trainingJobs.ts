@@ -130,10 +130,19 @@ export const createTrainingJob = mutation({
 
     const now = Date.now();
     const jobId = await ctx.db.insert("trainingJobs", {
-      ...args,
+      name: args.name,
+      description: args.description,
+      datasetId: args.datasetId,
+      pipelineId: args.pipelineId,
+      modelType: args.modelConfig.architecture,
+      modelParameters: args.modelConfig,
+      testSize: 0.2, // Default test size
+      validationSize: 0.2, // Default validation size
+      randomState: Math.floor(Math.random() * 1000), // Random seed
       status: "pending",
+      progress: 0,
       ownerId: user._id,
-      startedAt: now,
+      createdAt: now,
       updatedAt: now,
     });
 
@@ -152,15 +161,7 @@ export const updateTrainingJobStatus = mutation({
       v.literal("failed"),
       v.literal("cancelled")
     ),
-    colabUrl: v.optional(v.string()),
-    results: v.optional(v.object({
-      accuracy: v.optional(v.number()),
-      loss: v.optional(v.number()),
-      metrics: v.optional(v.any()),
-      trainingHistory: v.optional(v.any()),
-      modelWeights: v.optional(v.any()),
-      completedAt: v.optional(v.number()),
-    })),
+    metrics: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -187,18 +188,16 @@ export const updateTrainingJobStatus = mutation({
       updatedAt: Date.now(),
     };
 
-    if (args.colabUrl !== undefined) updates.colabUrl = args.colabUrl;
-    if (args.results !== undefined) {
-      updates.results = {
-        ...job.results,
-        ...args.results,
+    if (args.metrics !== undefined) {
+      updates.metrics = {
+        ...job.metrics,
+        ...args.metrics,
       };
     }
 
     // If job is completed, set completedAt timestamp
-    if (args.status === "completed" && !job.results?.completedAt) {
-      if (!updates.results) updates.results = {};
-      updates.results.completedAt = Date.now();
+    if (args.status === "completed" && !job.completedAt) {
+      updates.completedAt = Date.now();
     }
 
     await ctx.db.patch(args.jobId, updates);

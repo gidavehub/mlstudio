@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId, getAuthUser } from "./utils";
+import { Id } from "./_generated/dataModel";
 
 // Get all marketplace datasets (for overview/admin purposes)
 export const list = query({
@@ -195,6 +196,7 @@ export const submitContribution = mutation({
       v.literal("data_addition"),
       v.literal("correction")
     ),
+    marketplaceDatasetId: v.optional(v.id("marketplaceDatasets")), // Required for data_addition and correction
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -207,7 +209,39 @@ export const submitContribution = mutation({
       throw new Error("User not found");
     }
 
+    let marketplaceDatasetId: Id<"marketplaceDatasets">;
+
+    if (args.contributionType === "new_dataset") {
+      // For new datasets, create a marketplace dataset first
+      marketplaceDatasetId = await ctx.db.insert("marketplaceDatasets", {
+        name: args.name,
+        description: args.description,
+        category: args.category,
+        tags: args.tags,
+        size: args.size,
+        format: args.format,
+        fileStorageId: args.fileStorageId,
+        metadata: args.metadata,
+        ownerId: user._id,
+        price: 0, // Free for new contributions
+        rating: 0,
+        reviewCount: 0,
+        downloadCount: 0,
+        isVerified: false,
+        isActive: false, // Will be activated after review
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    } else {
+      // For data_addition and correction, marketplaceDatasetId is required
+      if (!args.marketplaceDatasetId) {
+        throw new Error("marketplaceDatasetId is required for data_addition and correction contributions");
+      }
+      marketplaceDatasetId = args.marketplaceDatasetId;
+    }
+
     const contributionId = await ctx.db.insert("dataContributions", {
+      marketplaceDatasetId,
       contributorId: user._id,
       contributionType: args.contributionType,
       description: args.description,
@@ -416,31 +450,31 @@ export const searchDatasets = query({
       query = query.filter((q) => q.eq(q.field("isVerified"), args.verified!));
     }
 
-    // Apply sorting
+    const datasets = await query.collect();
+
+    // Apply sorting in memory
     switch (args.sortBy) {
       case "newest":
-        query = query.order("desc");
+        datasets.sort((a, b) => b.createdAt - a.createdAt);
         break;
       case "oldest":
-        query = query.order("asc");
+        datasets.sort((a, b) => a.createdAt - b.createdAt);
         break;
       case "price_low":
-        query = query.order("asc");
+        datasets.sort((a, b) => a.price - b.price);
         break;
       case "price_high":
-        query = query.order("desc");
+        datasets.sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        query = query.order("desc");
+        datasets.sort((a, b) => b.rating - a.rating);
         break;
       case "downloads":
-        query = query.order("desc");
+        datasets.sort((a, b) => b.downloadCount - a.downloadCount);
         break;
       default:
-        query = query.order("desc");
+        datasets.sort((a, b) => b.createdAt - a.createdAt);
     }
-
-    const datasets = await query.collect();
 
     // Apply text search if provided
     if (args.query) {

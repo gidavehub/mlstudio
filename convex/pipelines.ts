@@ -459,7 +459,7 @@ export const createPipelineVersion = mutation({
     }
 
     // Create new version
-    const newVersion = originalPipeline.version + 1;
+    const newVersion = (originalPipeline.version || 0) + 1;
     const newPipelineId = await ctx.db.insert("transformationPipelines", {
       name: args.name || originalPipeline.name,
       description: args.description || originalPipeline.description,
